@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import Events from "./routes/eventsService.js";
 import adminEvents from "./routes/adminEventsService.js"
+import path from "path";
 
 
 dotenv.config();
@@ -24,7 +25,8 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoutes);
 app.use('/api/events/', Events);
 app.use('/api/admin/', adminEvents);
-
+app.use("/uploads", express.static("uploads"));
+app.use('/images', express.static(path.join(path.resolve(), 'src/server/images')));
 const PORT = process.env.PORT || 5001;
 
 async function start() {
