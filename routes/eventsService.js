@@ -27,11 +27,8 @@ const upload = multer({
   },
 });
 
-/**
- * LOGGED-IN USERS: Browse all events
- * GET /api/events
- */
-router.get("/", requireAuth, async (req, res) => {
+/** BROWSE ALL EVENTS */
+router.get("/", async (req, res) => {
   try {
     const events = await Event.find({ status: { $ne: "cancelled" } }).sort({
       startDateTime: 1,
@@ -41,6 +38,7 @@ router.get("/", requireAuth, async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch events." });
   }
 });
+
 
 /**
  * LOGGED-IN USERS: Get single event
