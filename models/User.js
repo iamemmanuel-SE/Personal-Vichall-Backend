@@ -14,6 +14,14 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     passwordHash: { type: String, required: true },
+
+    // models/User.js
+    loyalty: {
+    isMember: { type: Boolean, default: false },
+    bookingCount: { type: Number, default: 0 }
+    },
+
+
     role: {
       type: String,
       enum: ['user', 'admin'],
