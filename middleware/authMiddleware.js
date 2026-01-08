@@ -5,7 +5,13 @@ export function requireAuth(req, res, next) {
     const auth = req.headers.authorization || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
 
-    if (!token) return res.status(401).json({ message: "Missing auth token." });
+    if (!token) {
+      return res.status(401).json({ message: "Missing auth token." });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "Server misconfigured (missing JWT_SECRET)." });
+    }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
