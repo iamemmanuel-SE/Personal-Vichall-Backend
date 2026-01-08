@@ -8,7 +8,10 @@ export function requireAuth(req, res, next) {
     if (!token) return res.status(401).json({ message: "Missing auth token." });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     req.userId = decoded.sub;
+    req.userRole = decoded.role;
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token." });

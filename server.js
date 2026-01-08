@@ -3,6 +3,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
+import Events from "./routes/eventsService.js";
+import adminEvents from "./routes/adminEventsService.js"
+
 
 dotenv.config();
 
@@ -19,6 +22,8 @@ app.use(
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 app.use("/api/auth", authRoutes);
+app.use('/api/events/', Events);
+app.use('/api/admin/', adminEvents);
 
 const PORT = process.env.PORT || 5001;
 

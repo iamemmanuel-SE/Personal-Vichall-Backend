@@ -1,7 +1,11 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import PasswordReset from "../models/PasswordReset.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
+
+
 
 const router = express.Router();
 
@@ -32,8 +36,20 @@ function genToken() {
   return `${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
 }
 
+function signJwt(user) {
+  if (!process.env.JWT_SECRET) throw new Error("Missing JWT_SECRET in server/.env");
+
+  return jwt.sign(
+    { sub: user._id.toString(), role: user.role }, //include role
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+
 /**
  * REGISTER
+ * returns token + user
  */
 router.post("/register", async (req, res) => {
   try {
@@ -82,13 +98,19 @@ router.post("/register", async (req, res) => {
       passwordHash,
     });
 
+    const token = signJwt(user);
+
     return res.status(201).json({
       message: "Account created",
+      token,
       user: {
         id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phone: user.phone,
+        dob: user.dob,
+        role: user.role, // role added to signed up user
       },
     });
   } catch (err) {
@@ -99,6 +121,7 @@ router.post("/register", async (req, res) => {
 
 /**
  * LOGIN
+ * returns token + user
  */
 router.post("/login", async (req, res) => {
   try {
@@ -111,7 +134,6 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     const user = await User.findOne({ email: normalizedEmail });
 
-    // Keep this generic for security (don’t reveal if email exists)
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password." });
     }
@@ -121,13 +143,46 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password." });
     }
 
+    const token = signJwt(user);
+
     return res.status(200).json({
       message: "Logged in",
+      token,
       user: {
         id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phone: user.phone,
+        dob: user.dob,
+        role: user.role, // role added to logged in user
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error." });
+  }
+});
+
+/**
+ * GET CURRENT USER
+ * GET /api/auth/me
+ */
+router.get("/me", requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("firstName lastName email phone dob role");
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    return res.json({
+      ok: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        dob: user.dob,
+        role: user.role, // role added
       },
     });
   } catch (err) {
@@ -138,15 +193,12 @@ router.post("/login", async (req, res) => {
 
 /**
  * FORGOT PASSWORD (generate code)
- * POST /api/auth/forgot-password
- * body: { email }
  */
 router.post("/forgot-password", async (req, res) => {
   try {
     const email = String(req.body?.email || "").toLowerCase().trim();
     if (!email) return res.status(400).json({ message: "Email is required." });
 
-    // For your app, you likely want to only allow resets for real users:
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "No account found for that email." });
 
@@ -158,7 +210,7 @@ router.post("/forgot-password", async (req, res) => {
       {
         email,
         codeHash,
-        codeExpiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        codeExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
         attemptsLeft: 5,
         verified: false,
         resetTokenHash: null,
@@ -167,18 +219,11 @@ router.post("/forgot-password", async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // TODO: Replace with Brevo email later.
     console.log(`[RESET CODE] ${email}: ${code}`);
 
     const payload = { ok: true };
-
-// ONLY expose code in development to help the test
-if (process.env.NODE_ENV !== "production") {
-  payload.devCode = code;
-}
-
-return res.json(payload);
-
+    if (process.env.NODE_ENV !== "production") payload.devCode = code;
+    return res.json(payload);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error." });
@@ -187,11 +232,8 @@ return res.json(payload);
 
 /**
  * RESEND RESET CODE
- * POST /api/auth/resend-reset-code
- * body: { email }
  */
 router.post("/resend-reset-code", async (req, res) => {
-  // Same behavior as forgot-password (new code each time)
   try {
     const email = String(req.body?.email || "").toLowerCase().trim();
     if (!email) return res.status(400).json({ message: "Email is required." });
@@ -218,7 +260,9 @@ router.post("/resend-reset-code", async (req, res) => {
 
     console.log(`[RESET CODE - RESEND] ${email}: ${code}`);
 
-    return res.json({ ok: true });
+    const payload = { ok: true };
+    if (process.env.NODE_ENV !== "production") payload.devCode = code;
+    return res.json(payload);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error." });
@@ -227,9 +271,6 @@ router.post("/resend-reset-code", async (req, res) => {
 
 /**
  * VERIFY RESET CODE
- * POST /api/auth/verify-reset-code
- * body: { email, code }
- * returns: { ok: true, resetToken }
  */
 router.post("/verify-reset-code", async (req, res) => {
   try {
@@ -244,7 +285,7 @@ router.post("/verify-reset-code", async (req, res) => {
     if (!reset) return res.status(404).json({ message: "No reset request found." });
 
     if (Date.now() > new Date(reset.codeExpiresAt).getTime()) {
-      return res.status(400).json({ message: "Code expired. Please resend a new one." });
+      return res.status(400).json({ message: "Code expired. Please resend a new code." });
     }
 
     if (reset.attemptsLeft <= 0) {
@@ -255,15 +296,13 @@ router.post("/verify-reset-code", async (req, res) => {
     if (!ok) {
       reset.attemptsLeft -= 1;
       await reset.save();
-      return res.status(400).json({
-        message: `Incorrect code. Attempts left: ${reset.attemptsLeft}`,
-      });
+      return res.status(400).json({ message: `Incorrect code. Attempts left: ${reset.attemptsLeft}` });
     }
 
     const resetToken = genToken();
     reset.verified = true;
     reset.resetTokenHash = await bcrypt.hash(resetToken, 10);
-    reset.resetExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes to reset
+    reset.resetExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await reset.save();
 
     return res.json({ ok: true, resetToken });
@@ -274,9 +313,7 @@ router.post("/verify-reset-code", async (req, res) => {
 });
 
 /**
- * RESET PASSWORD (persist to MongoDB)
- * POST /api/auth/reset-password
- * body: { email, resetToken, newPassword }
+ * RESET PASSWORD
  */
 router.post("/reset-password", async (req, res) => {
   try {
@@ -309,7 +346,6 @@ router.post("/reset-password", async (req, res) => {
     user.passwordHash = await bcrypt.hash(newPassword, 12);
     await user.save();
 
-    // Invalidate reset session
     await PasswordReset.deleteOne({ email });
 
     return res.json({ ok: true, message: "Password reset successful." });
