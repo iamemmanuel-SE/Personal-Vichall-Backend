@@ -15,12 +15,13 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: { type: String, required: true },
 
-    // models/User.js
+    // models/User.js, Makes group purchase twice to gain loyalty
     loyalty: {
     isMember: { type: Boolean, default: false },
     bookingCount: { type: Number, default: 0 }
     },
 
+    
 
     role: {
       type: String,

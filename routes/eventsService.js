@@ -44,7 +44,7 @@ router.get("/", async (req, res) => {
  * LOGGED-IN USERS: Get single event
  * GET /api/events/:id
  */
-router.get("/:id", requireAuth, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: "Event not found." });

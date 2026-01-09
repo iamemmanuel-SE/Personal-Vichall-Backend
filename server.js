@@ -6,6 +6,8 @@ import authRoutes from "./routes/auth.js";
 import Events from "./routes/eventsService.js";
 import adminEvents from "./routes/adminEventsService.js"
 import path from "path";
+import bookingsRoutes from "./routes/bookingsService.js";
+
 
 
 dotenv.config();
@@ -22,6 +24,7 @@ app.use(
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+app.use("/api/bookings", bookingsRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/events/', Events);
 app.use('/api/admin/', adminEvents);
