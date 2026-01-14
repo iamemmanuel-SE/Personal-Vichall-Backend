@@ -1,6 +1,6 @@
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import Events from "./routes/eventsService.js";
@@ -8,8 +8,7 @@ import adminEvents from "./routes/adminEventsService.js"
 import path from "path";
 import bookingsRoutes from "./routes/bookingsService.js";
 import adminUsers from "./routes/adminUsersService.js";
-
-
+import paymentsRoute from "./routes/payments.js";
 
 
 
@@ -27,11 +26,12 @@ app.use(
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+app.use("/api/payments", paymentsRoute);
 app.use("/api/admin/users", adminUsers);
 app.use("/api/bookings", bookingsRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/events/', Events);
-// app.use('/api/admin/', adminEvents);
+app.use('/api/admin/events', adminEvents);
 app.use("/uploads", express.static("uploads"));
 app.use('/images', express.static(path.join(path.resolve(), 'src/server/images')));
 const PORT = process.env.PORT || 5001;

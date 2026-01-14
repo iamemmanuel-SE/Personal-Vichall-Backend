@@ -1,3 +1,11 @@
+# OS
+.DS_Store
+
+# Uploads
+uploads/
+*.png
+*.jpg
+*.jpeg
 node_modules/
 .env
 .env.*

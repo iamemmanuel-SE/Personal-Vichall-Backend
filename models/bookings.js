@@ -13,6 +13,9 @@ const TicketSchema = new Schema(
       required: true,
     },
 
+    baseCost: { type: Number, required: true }, // original seat price before multipliers/discounts
+
+
     // prices per ticket
     fullPrice: { type: Number, required: true },     // before discount
     finalPrice: { type: Number, required: true },    // after best discount

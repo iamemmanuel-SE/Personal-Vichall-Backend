@@ -64,42 +64,54 @@ router.get("/:id", async (req, res) => {
  *  - status (optional)
  *  - image (optional file)
  */
-router.post("/postevent", requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const {
-      title,
-      description,
-      dateLabel,
-      timeLabel,
-      startDateTime,
-      endDateTime,
-      venue,
-      imageUrl,
-      status,
-    } = req.body;
+router.post(
+  "/postevent",
+  requireAuth,
+  requireAdmin,
+  upload.single("image"), // ✅ THIS is what actually saves the file
+  async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        dateLabel,
+        timeLabel,
+        startDateTime,
+        endDateTime,
+        venue,
+        imageUrl,
+        status,
+      } = req.body;
 
-    if (!title || !description || !dateLabel || !timeLabel || !startDateTime) {
-      return res.status(400).json({ message: "Missing required fields." });
+      if (!title || !description || !dateLabel || !timeLabel || !startDateTime) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+
+      // ✅ if admin uploaded a file, use it. else fallback to imageUrl string
+      const finalImageUrl = req.file
+        ? `/uploads/${req.file.filename}`
+        : (imageUrl?.trim() || "");
+
+      const event = await Event.create({
+        title: title.trim(),
+        description: description.trim(),
+        dateLabel: dateLabel.trim(),
+        timeLabel: timeLabel.trim(),
+        startDateTime: new Date(startDateTime),
+        endDateTime: endDateTime ? new Date(endDateTime) : null,
+        venue: venue?.trim() || "Victoria Hall",
+        imageUrl: finalImageUrl,
+        status: status || "published",
+      });
+
+      res.status(201).json(event);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to create event." });
     }
-
-    const event = await Event.create({
-      title: title.trim(),
-      description: description.trim(),
-      dateLabel: dateLabel.trim(),
-      timeLabel: timeLabel.trim(),
-      startDateTime: new Date(startDateTime),
-      endDateTime: endDateTime ? new Date(endDateTime) : null,
-      venue: venue?.trim() || "Victoria Hall",
-      imageUrl: imageUrl?.trim() || "",
-      status: status || "published",
-    });
-
-    res.status(201).json(event);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to create event." });
   }
-});
+);
+
 
 
 /**

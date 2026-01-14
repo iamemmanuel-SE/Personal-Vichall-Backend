@@ -14,7 +14,8 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.5.4",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "sib-api-v3-sdk": "^8.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

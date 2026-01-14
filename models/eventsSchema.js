@@ -1,6 +1,19 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
+const ReservedSeatSchema = new mongoose.Schema(
+  {
+    section: { type: String, required: true, trim: true }, // STALLS / LBAL / etc
+    row: { type: String, required: true, trim: true },     // A/B/C
+    seat: { type: Number, required: true },
+    reason: { type: String, default: "Admin reserved" },
+    reservedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    reservedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+
 const EventSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -14,6 +27,9 @@ const EventSchema = new Schema(
 
     venue: { type: String, default: "Victoria Hall", trim: true },
     imageUrl: { type: String, default: "", trim: true },
+
+    // inside EventSchema
+    reservedSeats: { type: [ReservedSeatSchema], default: [] },
 
     status: {
       type: String,
