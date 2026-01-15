@@ -17,9 +17,29 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+
+
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+//     credentials: true,
+//   })
+// );
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://personal-vic-hall-frontend.vercel.app"
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman / server calls
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
