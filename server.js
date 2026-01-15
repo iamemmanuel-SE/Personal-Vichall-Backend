@@ -26,12 +26,12 @@ app.use(
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-app.use("/payments", paymentsRoute);
-app.use("/admin/users", adminUsers);
-app.use("/bookings", bookingsRoutes);
-app.use("/auth", authRoutes);
-app.use('events/', Events);
-app.use('/admin/events', adminEvents);
+app.use("/api/payments", paymentsRoute);
+app.use("/api/admin/users", adminUsers);
+app.use("/api/bookings", bookingsRoutes);
+app.use("/api/auth", authRoutes);
+app.use('/api/events/', Events);
+app.use('/api/admin/events', adminEvents);
 // app.use("/uploads", express.static("uploads"));
 app.use('/images', express.static(path.join(path.resolve(), 'src/server/images')));
 const PORT = process.env.PORT || 5001;
