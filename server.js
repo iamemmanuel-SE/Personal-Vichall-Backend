@@ -32,7 +32,7 @@ app.use("/api/bookings", bookingsRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/events/', Events);
 app.use('/api/admin/events', adminEvents);
-app.use("/uploads", express.static("uploads"));
+// app.use("/uploads", express.static("uploads"));
 app.use('/images', express.static(path.join(path.resolve(), 'src/server/images')));
 const PORT = process.env.PORT || 5001;
 

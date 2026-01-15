@@ -1,24 +1,15 @@
 import express from "express";
-import path from "path";
 import multer from "multer";
 import Event from "../models/eventsSchema.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 import { requireAdmin } from "../middleware/adminMiddleware.js";
+import { uploadBufferToCloudinary } from "../utils/cloudinary.js";
 
 const router = express.Router();
 
-/** Multer setup */
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads"),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname || "");
-    const safeExt = ext.toLowerCase();
-    cb(null, `event_${Date.now()}${safeExt}`);
-  },
-});
-
+/** Multer setup (memory storage for Cloudinary) */
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 6 * 1024 * 1024 }, // 6MB
   fileFilter: (req, file, cb) => {
     const ok = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.mimetype);
@@ -26,6 +17,17 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+
+// const upload = multer({
+//   storage,
+//   limits: { fileSize: 6 * 1024 * 1024 }, // 6MB
+//   fileFilter: (req, file, cb) => {
+//     const ok = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.mimetype);
+//     if (!ok) return cb(new Error("Only JPG/PNG/WEBP images are allowed."));
+//     cb(null, true);
+//   },
+// });
 
 /** BROWSE ALL EVENTS */
 router.get("/", async (req, res) => {
@@ -68,7 +70,7 @@ router.post(
   "/postevent",
   requireAuth,
   requireAdmin,
-  upload.single("image"), // ✅ THIS is what actually saves the file
+  upload.single("image"),
   async (req, res) => {
     try {
       const {
@@ -87,10 +89,12 @@ router.post(
         return res.status(400).json({ message: "Missing required fields." });
       }
 
-      // ✅ if admin uploaded a file, use it. else fallback to imageUrl string
-      const finalImageUrl = req.file
-        ? `/uploads/${req.file.filename}`
-        : (imageUrl?.trim() || "");
+      let finalImageUrl = imageUrl?.trim() || "";
+
+      if (req.file?.buffer) {
+        const result = await uploadBufferToCloudinary(req.file.buffer, "vichall/events");
+        finalImageUrl = result.secure_url;
+      }
 
       const event = await Event.create({
         title: title.trim(),
@@ -111,6 +115,7 @@ router.post(
     }
   }
 );
+
 
 
 
